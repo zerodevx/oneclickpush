@@ -1,1 +1,3 @@
-# sveltekit-init
+# oneclickpush
+
+> One-click GitHub Pages deployer
