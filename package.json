@@ -1,28 +1,33 @@
 {
   "name": "oneclickpush",
-  "version": "0.1.0-next.1",
+  "version": "0.1.0",
   "description": "One-click GitHub Pages deployer",
   "author": "Jason Lee <jason@zerodevx.com>",
   "scripts": {
-    "lint": "prettier --check . && eslint && npx publint",
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "dependencies": {
-    "zx": "^8.8.5"
+    "prepublishOnly": "npm run lint",
+    "emit": "tsc index.js -d --emitDeclarationOnly --allowJs && prettier --write index.d.ts",
+    "lint": "npm run emit && prettier --check . && eslint && npx publint",
+    "test": "node --test"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "eslint": "^10.12.0",
     "globals": "^17.13.0",
-    "prettier": "^3.9.10"
+    "prettier": "^3.9.10",
+    "typescript": "^7.0.2"
   },
   "type": "module",
   "exports": "./index.js",
+  "types": "./index.d.ts",
   "bin": "cli.js",
   "files": [
     "index.js",
+    "index.d.ts",
     "cli.js"
   ],
+  "engines": {
+    "node": ">=18.3.0"
+  },
   "license": "ISC",
   "repository": "github:zerodevx/oneclickpush",
   "keywords": [
