@@ -5,7 +5,7 @@ import { publish } from './index.js'
 
 const HELP = `Usage: oneclickpush [options]
 
-Replace the contents of a remote git branch with that of a 
+Replace the contents of a remote git branch with that of a
 local directory.
 
 Options:
@@ -14,15 +14,18 @@ Options:
                           (default: "**/.DS_Store")
   -b, --branch <name>     Target branch (default: "gh-pages")
   -m, --message <msg>     Commit message (default: "Updates")
-  -f, --force             Force push with no history
-  -n, --dry-run           Show what would change, without 
+  -r, --remote <name|url> Remote name or repo URL to publish to
+                          (default: "origin")
+  -a, --author <author>   Commit author, as "Name <email>"
+  -f, --force             Force push new commit with no history
+  -n, --dry-run           Show what would change, without
                           committing or pushing
   -v, --verbose           Log git commands
   -V, --version           Print version
   -h, --help              Show this help
 
---exclude takes glob patterns (*, **, ?) and can be repeated. 
-Patterns are matched against the full path, so use **/name to 
+--exclude takes glob patterns (*, **, ?) and can be repeated.
+Patterns are matched against the full path, so use **/name to
 match at any depth.`
 
 const { values: v } = parseArgs({
@@ -30,8 +33,10 @@ const { values: v } = parseArgs({
     dist: { type: 'string', short: 'd', default: '.' },
     exclude: { type: 'string', short: 'e', multiple: true, default: ['**/.DS_Store'] },
     branch: { type: 'string', short: 'b', default: 'gh-pages' },
-    force: { type: 'boolean', short: 'f', default: false },
     message: { type: 'string', short: 'm', default: 'Updates' },
+    remote: { type: 'string', short: 'r', default: 'origin' },
+    author: { type: 'string', short: 'a' },
+    force: { type: 'boolean', short: 'f', default: false },
     'dry-run': { type: 'boolean', short: 'n', default: false },
     verbose: { type: 'boolean', short: 'v', default: false },
     version: { type: 'boolean', short: 'V', default: false },

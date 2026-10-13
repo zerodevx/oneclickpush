@@ -10,7 +10,9 @@ import { join, resolve } from 'node:path'
  * @prop {string[]} [exclude] Paths to leave out, relative to dist (default: `**\/.DS_Store`)
  * @prop {string} [branch="gh-pages"] Target branch
  * @prop {string} [message="Updates"] Commit message
- * @prop {boolean} [force=false] Force push with no history
+ * @prop {string} [remote="origin"] Remote name of the current repo, or a repository URL or path
+ * @prop {string} [author] Commit author and committer as "Name <email>"
+ * @prop {boolean} [force=false] Force push new commit with no history
  * @prop {boolean} [dryRun=false] Show what would change, without committing or pushing
  * @prop {boolean} [verbose=false] Log git commands
  */
@@ -26,6 +28,8 @@ export async function publish({
   exclude = ['**/.DS_Store'],
   branch = 'gh-pages',
   message = 'Updates',
+  remote = 'origin',
+  author,
   force = false,
   dryRun = false,
   verbose = false
@@ -33,13 +37,34 @@ export async function publish({
   dist = resolve(dist)
   const run = promisify(execFile)
 
-  /** @type {(args: string[], cwd?: string) => Promise<string>} */
-  const git = async (args, cwd) => {
-    if (verbose) console.error(`$ git ${args.join(' ')}`)
-    return (await run('git', args, { cwd })).stdout.trim()
+  // Env vars beat git config, so this also overrides any identity already set in CI
+  /** @type {Record<string, string>} */
+  let identity = {}
+  if (author) {
+    const m = /^(.+?)\s*<(.+)>$/.exec(author)
+    if (!m) throw new Error('--author must look like "Name <email>"')
+    identity = {
+      GIT_AUTHOR_NAME: m[1],
+      GIT_AUTHOR_EMAIL: m[2],
+      GIT_COMMITTER_NAME: m[1],
+      GIT_COMMITTER_EMAIL: m[2]
+    }
   }
 
-  const url = await git(['config', '--get', 'remote.origin.url'])
+  /** @type {(args: string[], cwd?: string, env?: Record<string, string>) => Promise<string>} */
+  const git = async (args, cwd, env) => {
+    if (verbose) console.error(`$ git ${args.join(' ')}`)
+    return (await run('git', args, { cwd, env: { ...process.env, ...env } })).stdout.trim()
+  }
+
+  // A remote name resolves to its url; anything else is used as a url or path as-is
+  let url = remote
+  try {
+    url = await git(['remote', 'get-url', remote])
+  } catch {
+    if (/^[\w-]+$/.test(remote)) throw new Error(`Remote "${remote}" not found`)
+  }
+
   const tmp = await mkdtemp(join(tmpdir(), 'oneclickpush-'))
 
   try {
@@ -77,7 +102,7 @@ export async function publish({
     const status = await git(['diff', '--cached', '--name-status'], tmp)
     if (!status || dryRun) return status
 
-    await git(['commit', '-q', '-m', message], tmp)
+    await git(['commit', '-q', '-m', message], tmp, identity)
     await git(['push', '-q', ...(force ? ['--force'] : []), 'origin', branch], tmp)
     return status
   } finally {

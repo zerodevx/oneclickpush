@@ -16,6 +16,14 @@ export type OneclickpushOptions = {
    */
   message?: string
   /**
+   * Remote name of the current repo, or a repository URL or path
+   */
+  remote?: string
+  /**
+   * Commit author and committer as "Name <email>"
+   */
+  author?: string
+  /**
    * Force push with no history
    */
   force?: boolean
@@ -34,6 +42,8 @@ export type OneclickpushOptions = {
  * @prop {string[]} [exclude] Paths to leave out, relative to dist (default: `**\/.DS_Store`)
  * @prop {string} [branch="gh-pages"] Target branch
  * @prop {string} [message="Updates"] Commit message
+ * @prop {string} [remote="origin"] Remote name of the current repo, or a repository URL or path
+ * @prop {string} [author] Commit author and committer as "Name <email>"
  * @prop {boolean} [force=false] Force push with no history
  * @prop {boolean} [dryRun=false] Show what would change, without committing or pushing
  * @prop {boolean} [verbose=false] Log git commands
@@ -49,6 +59,8 @@ export declare function publish({
   exclude,
   branch,
   message,
+  remote,
+  author,
   force,
   dryRun,
   verbose
