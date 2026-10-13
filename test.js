@@ -48,7 +48,7 @@ beforeEach(async () => {
   git(root, 'init', '-q', '--bare', '-b', 'main', remote)
   git(work, 'init', '-q', '-b', 'main')
   git(work, 'remote', 'add', 'origin', `file://${remote}`)
-  process.chdir(work) // publish() reads remote.origin.url from the cwd
+  process.chdir(work) // publish() reads the remote url from the cwd
 })
 
 afterEach(async () => {
@@ -191,6 +191,42 @@ test('does not touch the working repo', async () => {
   await publish({ dist })
   assert.equal(git(work, 'status', '--porcelain'), '')
   assert.equal(git(work, 'branch', '--list'), '')
+})
+
+test('--remote accepts a url and needs no git repo', async () => {
+  await write({ 'index.html': 'hi' })
+  process.chdir(root) // not a repo
+  await publish({ dist, remote: `file://${remote}` })
+  assert.deepEqual(remoteFiles(), ['index.html'])
+})
+
+test('--remote accepts the name of another remote', async () => {
+  const other = join(root, 'other.git')
+  git(root, 'init', '-q', '--bare', '-b', 'main', other)
+  git(work, 'remote', 'add', 'other', `file://${other}`)
+  await write({ 'index.html': 'hi' })
+  await publish({ dist, remote: 'other' })
+  assert.equal(git(other, 'ls-tree', '-r', '--name-only', 'gh-pages'), 'index.html')
+  assert.equal(git(remote, 'branch', '--list'), '')
+})
+
+test('--remote reports an unknown remote name', async () => {
+  await write({ 'index.html': 'hi' })
+  await assert.rejects(publish({ dist, remote: 'nope' }), /Remote "nope" not found/)
+})
+
+test('--author sets the commit author and committer', async () => {
+  await write({ 'index.html': 'hi' })
+  await publish({ dist, author: 'Jane Doe <jane@example.com>' })
+  assert.equal(
+    git(remote, 'log', '-1', '--format=%an|%ae|%cn|%ce', 'gh-pages'),
+    'Jane Doe|jane@example.com|Jane Doe|jane@example.com'
+  )
+})
+
+test('--author rejects a malformed value', async () => {
+  await write({ 'index.html': 'hi' })
+  await assert.rejects(publish({ dist, author: 'Jane' }), /Name <email>/)
 })
 
 test('cli: --help exits 0 and prints usage', () => {
