@@ -9,7 +9,7 @@ in one command.
 [complicated](https://github.com/tschaub/gh-pages/tree/main/lib),
 [buggy](https://github.com/tschaub/gh-pages/issues), and
 [unmaintained](https://github.com/tschaub/gh-pages/issues/657#issue-4979248775); `oneclickpush` is
-none of these, has zero dependencies and only uses Node native functions + `git`.
+none of these, has zero dependencies and only uses built-in Node APIs + `git`.
 
 ## Quick Start
 
@@ -32,7 +32,9 @@ Options:
   -e, --exclude <glob>    Paths to leave out, relative to dist (default: "**/.DS_Store")
   -b, --branch <name>     Target branch (default: "gh-pages")
   -m, --message <msg>     Commit message (default: "Updates")
-  -f, --force             Force push with no history
+  -r, --remote <name|url> Remote name or repo URL to publish to (default: "origin")
+  -a, --author <author>   Commit author, as "Name <email>"
+  -f, --force             Force push new commit with no history
   -n, --dry-run           Show what would change, without committing or pushing
   -v, --verbose           Log git commands
   -V, --version           Print version
@@ -55,6 +57,13 @@ npx oneclickpush -d public -b release -m "deploy: v1.0.0"
 # Exclude source maps and test files
 npx oneclickpush -d dist -e "**/*.map" -e "**/tests/**"
 
+# Deploy to a different remote or repository URL
+npx oneclickpush -d dist -r upstream
+npx oneclickpush -d dist -r git@github.com:user/repo.git
+
+# Set commit author (useful in CI environments)
+npx oneclickpush -d dist -a "Deploy Bot <bot@example.com>"
+
 # Force push fresh history
 npx oneclickpush -d dist --force
 ```
@@ -76,6 +85,8 @@ const changes = await publish({
   exclude: ['**/.DS_Store', '**/*.map'],
   branch: 'gh-pages',
   message: 'Deploy updates',
+  remote: 'origin',
+  author: 'Deploy Bot <bot@example.com>',
   force: false,
   dryRun: false,
   verbose: false
@@ -96,19 +107,22 @@ if (changes) {
 | `exclude` | `string[]` | `["**/.DS_Store"]` | Paths to exclude relative to `dist`                 |
 | `branch`  | `string`   | `"gh-pages"`       | Target git branch                                   |
 | `message` | `string`   | `"Updates"`        | Git commit message                                  |
+| `remote`  | `string`   | `"origin"`         | Remote name or repository URL/path to publish to    |
+| `author`  | `string`   | —                  | Commit author and committer, as `"Name <email>"`    |
 | `force`   | `boolean`  | `false`            | Force push fresh commit with no previous history    |
 | `dryRun`  | `boolean`  | `false`            | Return staged changes without committing or pushing |
 | `verbose` | `boolean`  | `false`            | Log executed git commands                           |
 
 ## How It Works
 
-1. Resolves the remote origin repository URL from local git configuration.
+1. Resolves the target repository URL from git remote configuration or uses the provided remote
+   URL/path directly.
 2. Creates an isolated temporary directory and fetches the target branch (or initializes it if it
    doesn't exist).
-3. Clears the target branch index and stages the contents of `dist` (less `exclude` patterns)
+3. Clears the target branch index and stages the contents of `dist` (minus `exclude` patterns)
    directly via Git `work-tree`.
 4. Checks for differences (`git diff --cached --name-status`). If there are changes, commits and
-   pushes back to `origin`.
+   pushes back to the remote repository.
 5. Cleans up the temporary directory.
 
 > [!WARNING]  
@@ -116,10 +130,12 @@ if (changes) {
 
 ### Notes
 
-- Dot files included by default; use `-e` to exclude.
+- Dotfiles (except `.DS_Store`) are included by default; use `-e` to exclude.
 - Contents in target branch are emptied and replaced with the contents of `dist` (WYSIWYG).
 - If `.nojekyll` or `CNAME` files are required, add them to `dist`; use a post-build step if needed.
 - If the target branch does not exist, it will be created.
+- When `--remote` is a repository URL or path, running from within an existing git repository is not
+  required.
 
 ## License
 
