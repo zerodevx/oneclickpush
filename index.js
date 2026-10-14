@@ -4,37 +4,51 @@ import { mkdtemp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 
+/** @typedef {'silent' | 'normal' | 'verbose'} OcpOptionsLogLevel */
+
+/** Default option values, shared with the CLI */
+export const DEFAULTS = Object.freeze({
+  exclude: ['**/.DS_Store'],
+  branch: 'gh-pages',
+  message: 'Updates',
+  remote: 'origin',
+  force: false,
+  dryRun: false,
+  logLevel: /** @type {OcpOptionsLogLevel} */ ('normal')
+})
+
 /**
- * @typedef {object} OneclickpushOptions
- * @prop {string} [dist="."] Directory to deploy
- * @prop {string[]} [exclude] Paths to leave out, relative to dist (default: `**\/.DS_Store`)
+ * @typedef {object} OcpOptions
+ * @prop {string} dir Directory to deploy (required)
+ * @prop {string[]} [exclude] Paths to leave out, relative to dir (default: `**\/.DS_Store`)
  * @prop {string} [branch="gh-pages"] Target branch
  * @prop {string} [message="Updates"] Commit message
  * @prop {string} [remote="origin"] Remote name of the current repo, or a repository URL or path
  * @prop {string} [author] Commit author and committer as "Name <email>"
  * @prop {boolean} [force=false] Force push new commit with no history
  * @prop {boolean} [dryRun=false] Show what would change, without committing or pushing
- * @prop {'silent' | 'normal' | 'verbose'} [logLevel="normal"] Only "verbose" logs (git commands, to stderr)
+ * @prop {OcpOptionsLogLevel} [logLevel="normal"] Only "verbose" logs (git commands, to stderr)
  */
 
 /**
  * Replace the contents of a git branch with the contents of a directory.
  * Returns the staged changes as `git diff --name-status` text or "" if nothing changed.
- * @param {OneclickpushOptions} options
+ * @param {OcpOptions} options
  * @returns {Promise<string>}
  */
 export async function deploy({
-  dist = '.',
-  exclude = ['**/.DS_Store'],
-  branch = 'gh-pages',
-  message = 'Updates',
-  remote = 'origin',
+  dir,
+  exclude = DEFAULTS.exclude,
+  branch = DEFAULTS.branch,
+  message = DEFAULTS.message,
+  remote = DEFAULTS.remote,
   author,
-  force = false,
-  dryRun = false,
-  logLevel = 'normal'
-} = {}) {
-  dist = resolve(dist)
+  force = DEFAULTS.force,
+  dryRun = DEFAULTS.dryRun,
+  logLevel = DEFAULTS.logLevel
+}) {
+  if (!dir) throw new Error('dir is required')
+  dir = resolve(dir)
   const run = promisify(execFile)
 
   // Env vars beat git config, so this also overrides any identity already set in CI
@@ -83,21 +97,21 @@ export async function deploy({
       await git(['remote', 'add', 'origin', url], tmp)
     }
 
-    // Empty the index, then stage everything from dist except excluded paths
+    // Empty the index, then stage everything from dir except excluded paths
     await git(['read-tree', '--empty'], tmp)
     await git(
       [
         '--git-dir',
         join(tmp, '.git'),
         '--work-tree',
-        dist,
+        dir,
         'add',
         '--force',
         '--',
         '.',
         ...exclude.map((p) => `:(exclude,glob)${p}`)
       ],
-      dist
+      dir
     )
 
     const status = await git(['diff', '--cached', '--name-status'], tmp)

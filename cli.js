@@ -1,27 +1,29 @@
 #!/usr/bin/env node
 import { parseArgs } from 'node:util'
 import { readFileSync } from 'node:fs'
-import { deploy } from './index.js'
+import { deploy, DEFAULTS } from './index.js'
 
-const HELP = `Usage: oneclickpush [options]
+const HELP = `Usage: oneclickpush <dir> [options]
 
 Replace the contents of a remote git branch with that of a
 local directory.
 
+Arguments:
+  dir                     Directory to deploy (required)
+
 Options:
-  -d, --dist <dir>        Directory to deploy (default: ".")
-  -e, --exclude <glob>    Paths to leave out, relative to dist
-                          (default: "**/.DS_Store")
-  -b, --branch <name>     Target branch (default: "gh-pages")
-  -m, --message <msg>     Commit message (default: "Updates")
+  -e, --exclude <glob>    Paths to leave out, relative to dir
+                          (default: "${DEFAULTS.exclude.join(', ')}")
+  -b, --branch <name>     Target branch (default: "${DEFAULTS.branch}")
+  -m, --message <msg>     Commit message (default: "${DEFAULTS.message}")
   -r, --remote <name|url> Remote name or repo URL to deploy to
-                          (default: "origin")
+                          (default: "${DEFAULTS.remote}")
   -a, --author <author>   Commit author, as "Name <email>"
   -f, --force             Force push new commit with no history
   -n, --dry-run           Show what would change, without
                           committing or pushing
   -l, --log-level <level> Output: silent, normal or verbose
-                          (default: "normal")
+                          (default: "${DEFAULTS.logLevel}")
   -V, --version           Print version
   -h, --help              Show this help
 
@@ -35,21 +37,31 @@ commands and full errors.`
 
 const LEVELS = ['silent', 'normal', 'verbose']
 
-const { values: v } = parseArgs({
-  options: {
-    dist: { type: 'string', short: 'd', default: '.' },
-    exclude: { type: 'string', short: 'e', multiple: true, default: ['**/.DS_Store'] },
-    branch: { type: 'string', short: 'b', default: 'gh-pages' },
-    message: { type: 'string', short: 'm', default: 'Updates' },
-    remote: { type: 'string', short: 'r', default: 'origin' },
-    author: { type: 'string', short: 'a' },
-    force: { type: 'boolean', short: 'f', default: false },
-    'dry-run': { type: 'boolean', short: 'n', default: false },
-    'log-level': { type: 'string', short: 'l', default: 'normal' },
-    version: { type: 'boolean', short: 'V', default: false },
-    help: { type: 'boolean', short: 'h', default: false }
+const { values: v, positionals } = (() => {
+  try {
+    return parseArgs({
+      allowPositionals: true,
+      options: {
+        exclude: { type: 'string', short: 'e', multiple: true, default: DEFAULTS.exclude },
+        branch: { type: 'string', short: 'b', default: DEFAULTS.branch },
+        message: { type: 'string', short: 'm', default: DEFAULTS.message },
+        remote: { type: 'string', short: 'r', default: DEFAULTS.remote },
+        author: { type: 'string', short: 'a' },
+        force: { type: 'boolean', short: 'f', default: DEFAULTS.force },
+        'dry-run': { type: 'boolean', short: 'n', default: DEFAULTS.dryRun },
+        'log-level': { type: 'string', short: 'l', default: DEFAULTS.logLevel },
+        version: { type: 'boolean', short: 'V', default: false },
+        help: { type: 'boolean', short: 'h', default: false }
+      }
+    })
+  } catch (/** @type {any} */ e) {
+    if (!e.code?.startsWith('ERR_PARSE_ARGS_')) throw e
+    // Keep only the first sentence, Node appends a long "-- " hint to some messages
+    const msg = e.message.split('. ')[0].replace(/\.$/, '')
+    console.error(`${msg}, run "oneclickpush --help" for usage`)
+    process.exit(1)
   }
-})
+})()
 
 if (v.help) {
   console.log(HELP)
@@ -61,6 +73,16 @@ if (v.version) {
   console.log(pkg.version)
   process.exit(0)
 }
+
+if (positionals.length !== 1) {
+  console.error(
+    positionals.length === 0
+      ? 'Missing required argument <dir>, run "oneclickpush --help" for usage'
+      : 'Expected exactly one directory, run "oneclickpush --help" for usage'
+  )
+  process.exit(1)
+}
+const dir = positionals[0]
 
 const level = /** @type {'silent' | 'normal' | 'verbose'} */ (v['log-level'])
 if (!LEVELS.includes(level)) {
@@ -78,7 +100,7 @@ const spin =
 const stop = () => spin && (clearInterval(spin), process.stderr.write('\r \r'))
 
 try {
-  const changes = await deploy({ ...v, logLevel: level, dryRun: v['dry-run'] })
+  const changes = await deploy({ ...v, dir, logLevel: level, dryRun: v['dry-run'] })
   stop()
   if (level !== 'silent') {
     console.log(

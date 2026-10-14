@@ -16,20 +16,21 @@ none of these, has zero dependencies and only uses built-in Node APIs + `git`.
 Deploy your build directory (e.g. `dist`) to the `gh-pages` branch:
 
 ```text
-$ cd dist
-$ npx oneclickpush
+$ npx oneclickpush dist
 ```
 
 ## CLI Usage
 
 ```text
-Usage: oneclickpush [options]
+Usage: oneclickpush <dir> [options]
 
 Replace the contents of a remote git branch with that of a local directory.
 
+Arguments:
+  dir                     Directory to deploy (required)
+
 Options:
-  -d, --dist <dir>        Directory to deploy (default: ".")
-  -e, --exclude <glob>    Paths to leave out, relative to dist (default: "**/.DS_Store")
+  -e, --exclude <glob>    Paths to leave out, relative to dir (default: "**/.DS_Store")
   -b, --branch <name>     Target branch (default: "gh-pages")
   -m, --message <msg>     Commit message (default: "Updates")
   -r, --remote <name|url> Remote name or repo URL to deploy to (default: "origin")
@@ -62,29 +63,29 @@ Options:
 
 ```bash
 # Preview what would be deployed without pushing
-npx oneclickpush -d build --dry-run
+npx oneclickpush build --dry-run
 
 # Custom branch and commit message
-npx oneclickpush -d public -b release -m "deploy: v1.0.0"
+npx oneclickpush public -b release -m "deploy: v1.0.0"
 
 # Exclude source maps and test files
-npx oneclickpush -d dist -e "**/*.map" -e "**/tests/**"
+npx oneclickpush dist -e "**/*.map" -e "**/tests/**"
 
 # Deploy to a different remote or repository URL
-npx oneclickpush -d dist -r upstream
-npx oneclickpush -d dist -r git@github.com:user/repo.git
+npx oneclickpush dist -r upstream
+npx oneclickpush dist -r git@github.com:user/repo.git
 
 # Set commit author (useful in CI environments)
-npx oneclickpush -d dist -a "Deploy Bot <bot@example.com>"
+npx oneclickpush dist -a "Deploy Bot <bot@example.com>"
 
 # Force push fresh history
-npx oneclickpush -d dist --force
+npx oneclickpush dist --force
 
 # Silent output (useful in CI, check the exit code)
-npx oneclickpush -d dist -l silent
+npx oneclickpush dist -l silent
 
 # Log every git command
-npx oneclickpush -d dist -l verbose
+npx oneclickpush dist -l verbose
 ```
 
 ## Programmatic API
@@ -100,7 +101,7 @@ npm i oneclickpush
 import { deploy } from 'oneclickpush'
 
 const changes = await deploy({
-  dist: 'dist',
+  dir: 'dist',
   exclude: ['**/.DS_Store', '**/*.map'],
   branch: 'gh-pages',
   message: 'Deploy updates',
@@ -118,16 +119,24 @@ if (changes) {
 }
 ```
 
+The default values are also exported as `DEFAULTS`:
+
+```javascript
+import { DEFAULTS } from 'oneclickpush'
+
+console.log(DEFAULTS.branch) // "gh-pages"
+```
+
 ### Options
 
 | Option     | Type                                | Default            | Description                                         |
 | ---------- | ----------------------------------- | ------------------ | --------------------------------------------------- |
-| `dist`     | `string`                            | `"."`              | Directory to deploy                                 |
-| `exclude`  | `string[]`                          | `["**/.DS_Store"]` | Paths to exclude relative to `dist`                 |
+| `dir`      | `string`                            | - (required)       | Directory to deploy                                 |
+| `exclude`  | `string[]`                          | `["**/.DS_Store"]` | Paths to exclude relative to `dir`                  |
 | `branch`   | `string`                            | `"gh-pages"`       | Target git branch                                   |
 | `message`  | `string`                            | `"Updates"`        | Git commit message                                  |
 | `remote`   | `string`                            | `"origin"`         | Remote name or repository URL/path to deploy to     |
-| `author`   | `string`                            | —                  | Commit author and committer, as `"Name <email>"`    |
+| `author`   | `string`                            | -                  | Commit author and committer, as `"Name <email>"`    |
 | `force`    | `boolean`                           | `false`            | Force push fresh commit with no previous history    |
 | `dryRun`   | `boolean`                           | `false`            | Return staged changes without committing or pushing |
 | `logLevel` | `"silent" \| "normal" \| "verbose"` | `"normal"`         | Only `"verbose"` has an effect: logs git commands   |
@@ -142,7 +151,7 @@ if (changes) {
    URL/path directly.
 2. Creates an isolated temporary directory and fetches the target branch (or initializes it if it
    doesn't exist).
-3. Clears the target branch index and stages the contents of `dist` (minus `exclude` patterns)
+3. Clears the target branch index and stages the contents of `dir` (minus `exclude` patterns)
    directly via Git `work-tree`.
 4. Checks for differences (`git diff --cached --name-status`). If there are changes, commits and
    pushes back to the remote repository.
@@ -153,13 +162,14 @@ if (changes) {
 
 ### Notes
 
-- The target branch is fully replaced with the contents of `dist` (WYSIWYG), and it's created if it
-  doesn't exist yet. If you need files like `.nojekyll` or `CNAME`, put them in `dist`, adding a
+- The target branch is fully replaced with the contents of `dir` (WYSIWYG), and it's created if it
+  doesn't exist yet. If you need files like `.nojekyll` or `CNAME`, put them in `dir`, adding a
   post-build step if your build tool wipes the directory.
 - Dotfiles are included by default, except `.DS_Store`. Use `-e` to exclude more, but note that it
   replaces the default list, so repeat `-e "**/.DS_Store"` if you still want that file excluded.
 - When `--remote` is a repository URL or path, you don't need to run from inside a git repository.
 - In dry-run output, identical content moved to a new path appears as a rename (`R100`).
+- A directory starting with `-` must come after `--`, e.g. `oneclickpush -- -weird-dir`.
 
 ## License
 

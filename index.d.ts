@@ -1,10 +1,22 @@
-export type OneclickpushOptions = {
+export type OcpOptionsLogLevel = 'silent' | 'normal' | 'verbose'
+/** @typedef {'silent' | 'normal' | 'verbose'} OcpOptionsLogLevel */
+/** Default option values, shared with the CLI */
+export declare const DEFAULTS: Readonly<{
+  exclude: string[]
+  branch: 'gh-pages'
+  message: 'Updates'
+  remote: 'origin'
+  force: false
+  dryRun: false
+  logLevel: OcpOptionsLogLevel
+}>
+export type OcpOptions = {
   /**
-   * Directory to deploy
+   * Directory to deploy (required)
    */
-  dist?: string
+  dir: string
   /**
-   * Paths to leave out, relative to dist (default: `**\/.DS_Store`)
+   * Paths to leave out, relative to dir (default: `**\/.DS_Store`)
    */
   exclude?: string[]
   /**
@@ -34,28 +46,28 @@ export type OneclickpushOptions = {
   /**
    * Only "verbose" logs (git commands, to stderr)
    */
-  logLevel?: 'silent' | 'normal' | 'verbose'
+  logLevel?: OcpOptionsLogLevel
 }
 /**
- * @typedef {object} OneclickpushOptions
- * @prop {string} [dist="."] Directory to deploy
- * @prop {string[]} [exclude] Paths to leave out, relative to dist (default: `**\/.DS_Store`)
+ * @typedef {object} OcpOptions
+ * @prop {string} dir Directory to deploy (required)
+ * @prop {string[]} [exclude] Paths to leave out, relative to dir (default: `**\/.DS_Store`)
  * @prop {string} [branch="gh-pages"] Target branch
  * @prop {string} [message="Updates"] Commit message
  * @prop {string} [remote="origin"] Remote name of the current repo, or a repository URL or path
  * @prop {string} [author] Commit author and committer as "Name <email>"
  * @prop {boolean} [force=false] Force push new commit with no history
  * @prop {boolean} [dryRun=false] Show what would change, without committing or pushing
- * @prop {'silent' | 'normal' | 'verbose'} [logLevel="normal"] Only "verbose" logs (git commands, to stderr)
+ * @prop {OcpOptionsLogLevel} [logLevel="normal"] Only "verbose" logs (git commands, to stderr)
  */
 /**
  * Replace the contents of a git branch with the contents of a directory.
  * Returns the staged changes as `git diff --name-status` text or "" if nothing changed.
- * @param {OneclickpushOptions} options
+ * @param {OcpOptions} options
  * @returns {Promise<string>}
  */
 export declare function deploy({
-  dist,
+  dir,
   exclude,
   branch,
   message,
@@ -64,4 +76,4 @@ export declare function deploy({
   force,
   dryRun,
   logLevel
-}: OneclickpushOptions): Promise<string>
+}: OcpOptions): Promise<string>
