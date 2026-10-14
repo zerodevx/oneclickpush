@@ -28,15 +28,15 @@ Usage: oneclickpush [options]
 Replace the contents of a remote git branch with that of a local directory.
 
 Options:
-  -d, --dist <dir>        Directory to publish (default: ".")
+  -d, --dist <dir>        Directory to deploy (default: ".")
   -e, --exclude <glob>    Paths to leave out, relative to dist (default: "**/.DS_Store")
   -b, --branch <name>     Target branch (default: "gh-pages")
   -m, --message <msg>     Commit message (default: "Updates")
-  -r, --remote <name|url> Remote name or repo URL to publish to (default: "origin")
+  -r, --remote <name|url> Remote name or repo URL to deploy to (default: "origin")
   -a, --author <author>   Commit author, as "Name <email>"
   -f, --force             Force push new commit with no history
   -n, --dry-run           Show what would change, without committing or pushing
-  -v, --verbose           Log git commands
+  -l, --log-level <level> Output: silent, normal or verbose (default: "normal")
   -V, --version           Print version
   -h, --help              Show this help
 ```
@@ -44,6 +44,19 @@ Options:
 > [!TIP]  
 > `--exclude` takes glob patterns (`*`, `**`, `?`) and can be repeated. Patterns are matched against
 > the full path, so use `**/name` to match at any depth.
+
+### Log levels
+
+| Level     | Behavior                                                             |
+| --------- | -------------------------------------------------------------------- |
+| `silent`  | Prints nothing, not even errors. Check the exit code instead.        |
+| `normal`  | Prints the result and error messages (plus a spinner in a terminal). |
+| `verbose` | Also logs every git command to stderr and prints full errors.        |
+
+> [!WARNING]  
+> If your remote URL contains a token (e.g. `https://user:TOKEN@github.com/o/r.git`), git error
+> messages shown at `normal` and `verbose` may include it. Use `-l silent` in CI, or keep tokens out
+> of the URL with a credential helper.
 
 ### Examples
 
@@ -66,6 +79,12 @@ npx oneclickpush -d dist -a "Deploy Bot <bot@example.com>"
 
 # Force push fresh history
 npx oneclickpush -d dist --force
+
+# Silent output (useful in CI, check the exit code)
+npx oneclickpush -d dist -l silent
+
+# Log every git command
+npx oneclickpush -d dist -l verbose
 ```
 
 ## Programmatic API
@@ -73,14 +92,14 @@ npx oneclickpush -d dist --force
 You can also use `oneclickpush` as an ES module:
 
 ```bash
-# Install the library
+# Install
 npm i oneclickpush
 ```
 
 ```javascript
-import { publish } from 'oneclickpush'
+import { deploy } from 'oneclickpush'
 
-const changes = await publish({
+const changes = await deploy({
   dist: 'dist',
   exclude: ['**/.DS_Store', '**/*.map'],
   branch: 'gh-pages',
@@ -89,29 +108,33 @@ const changes = await publish({
   author: 'Deploy Bot <bot@example.com>',
   force: false,
   dryRun: false,
-  verbose: false
+  logLevel: 'normal'
 })
 
 if (changes) {
-  console.log('Published changes:\n' + changes)
+  console.log('Deployed changes:\n' + changes)
 } else {
-  console.log('Nothing to publish')
+  console.log('Nothing to deploy')
 }
 ```
 
 ### Options
 
-| Option    | Type       | Default            | Description                                         |
-| --------- | ---------- | ------------------ | --------------------------------------------------- |
-| `dist`    | `string`   | `"."`              | Directory to publish                                |
-| `exclude` | `string[]` | `["**/.DS_Store"]` | Paths to exclude relative to `dist`                 |
-| `branch`  | `string`   | `"gh-pages"`       | Target git branch                                   |
-| `message` | `string`   | `"Updates"`        | Git commit message                                  |
-| `remote`  | `string`   | `"origin"`         | Remote name or repository URL/path to publish to    |
-| `author`  | `string`   | —                  | Commit author and committer, as `"Name <email>"`    |
-| `force`   | `boolean`  | `false`            | Force push fresh commit with no previous history    |
-| `dryRun`  | `boolean`  | `false`            | Return staged changes without committing or pushing |
-| `verbose` | `boolean`  | `false`            | Log executed git commands                           |
+| Option     | Type                                | Default            | Description                                         |
+| ---------- | ----------------------------------- | ------------------ | --------------------------------------------------- |
+| `dist`     | `string`                            | `"."`              | Directory to deploy                                 |
+| `exclude`  | `string[]`                          | `["**/.DS_Store"]` | Paths to exclude relative to `dist`                 |
+| `branch`   | `string`                            | `"gh-pages"`       | Target git branch                                   |
+| `message`  | `string`                            | `"Updates"`        | Git commit message                                  |
+| `remote`   | `string`                            | `"origin"`         | Remote name or repository URL/path to deploy to     |
+| `author`   | `string`                            | —                  | Commit author and committer, as `"Name <email>"`    |
+| `force`    | `boolean`                           | `false`            | Force push fresh commit with no previous history    |
+| `dryRun`   | `boolean`                           | `false`            | Return staged changes without committing or pushing |
+| `logLevel` | `"silent" \| "normal" \| "verbose"` | `"normal"`         | Only `"verbose"` has an effect: logs git commands   |
+
+> [!NOTE]  
+> The library never prints anything except at `"verbose"`. `"silent"` and `"normal"` only differ in
+> the CLI.
 
 ## How It Works
 
@@ -130,12 +153,13 @@ if (changes) {
 
 ### Notes
 
-- Dotfiles (except `.DS_Store`) are included by default; use `-e` to exclude.
-- Contents in target branch are emptied and replaced with the contents of `dist` (WYSIWYG).
-- If `.nojekyll` or `CNAME` files are required, add them to `dist`; use a post-build step if needed.
-- If the target branch does not exist, it will be created.
-- When `--remote` is a repository URL or path, running from within an existing git repository is not
-  required.
+- The target branch is fully replaced with the contents of `dist` (WYSIWYG), and it's created if it
+  doesn't exist yet. If you need files like `.nojekyll` or `CNAME`, put them in `dist`, adding a
+  post-build step if your build tool wipes the directory.
+- Dotfiles are included by default, except `.DS_Store`. Use `-e` to exclude more, but note that it
+  replaces the default list, so repeat `-e "**/.DS_Store"` if you still want that file excluded.
+- When `--remote` is a repository URL or path, you don't need to run from inside a git repository.
+- In dry-run output, identical content moved to a new path appears as a rename (`R100`).
 
 ## License
 

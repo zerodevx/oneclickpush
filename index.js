@@ -6,7 +6,7 @@ import { join, resolve } from 'node:path'
 
 /**
  * @typedef {object} OneclickpushOptions
- * @prop {string} [dist="."] Directory to publish
+ * @prop {string} [dist="."] Directory to deploy
  * @prop {string[]} [exclude] Paths to leave out, relative to dist (default: `**\/.DS_Store`)
  * @prop {string} [branch="gh-pages"] Target branch
  * @prop {string} [message="Updates"] Commit message
@@ -14,7 +14,7 @@ import { join, resolve } from 'node:path'
  * @prop {string} [author] Commit author and committer as "Name <email>"
  * @prop {boolean} [force=false] Force push new commit with no history
  * @prop {boolean} [dryRun=false] Show what would change, without committing or pushing
- * @prop {boolean} [verbose=false] Log git commands
+ * @prop {'silent' | 'normal' | 'verbose'} [logLevel="normal"] Only "verbose" logs (git commands, to stderr)
  */
 
 /**
@@ -23,7 +23,7 @@ import { join, resolve } from 'node:path'
  * @param {OneclickpushOptions} options
  * @returns {Promise<string>}
  */
-export async function publish({
+export async function deploy({
   dist = '.',
   exclude = ['**/.DS_Store'],
   branch = 'gh-pages',
@@ -32,8 +32,8 @@ export async function publish({
   author,
   force = false,
   dryRun = false,
-  verbose = false
-}) {
+  logLevel = 'normal'
+} = {}) {
   dist = resolve(dist)
   const run = promisify(execFile)
 
@@ -53,8 +53,9 @@ export async function publish({
 
   /** @type {(args: string[], cwd?: string, env?: Record<string, string>) => Promise<string>} */
   const git = async (args, cwd, env) => {
-    if (verbose) console.error(`$ git ${args.join(' ')}`)
-    return (await run('git', args, { cwd, env: { ...process.env, ...env } })).stdout.trim()
+    if (logLevel === 'verbose') console.error(`$ git ${args.join(' ')}`)
+    const result = await run('git', args, { cwd, env: { ...process.env, ...env } })
+    return result.stdout.trim()
   }
 
   // A remote name resolves to its url; anything else is used as a url or path as-is

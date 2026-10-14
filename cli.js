@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import { parseArgs } from 'node:util'
 import { readFileSync } from 'node:fs'
-import { publish } from './index.js'
+import { deploy } from './index.js'
 
 const HELP = `Usage: oneclickpush [options]
 
@@ -9,24 +9,31 @@ Replace the contents of a remote git branch with that of a
 local directory.
 
 Options:
-  -d, --dist <dir>        Directory to publish (default: ".")
+  -d, --dist <dir>        Directory to deploy (default: ".")
   -e, --exclude <glob>    Paths to leave out, relative to dist
                           (default: "**/.DS_Store")
   -b, --branch <name>     Target branch (default: "gh-pages")
   -m, --message <msg>     Commit message (default: "Updates")
-  -r, --remote <name|url> Remote name or repo URL to publish to
+  -r, --remote <name|url> Remote name or repo URL to deploy to
                           (default: "origin")
   -a, --author <author>   Commit author, as "Name <email>"
   -f, --force             Force push new commit with no history
   -n, --dry-run           Show what would change, without
                           committing or pushing
-  -v, --verbose           Log git commands
+  -l, --log-level <level> Output: silent, normal or verbose
+                          (default: "normal")
   -V, --version           Print version
   -h, --help              Show this help
 
 --exclude takes glob patterns (*, **, ?) and can be repeated.
 Patterns are matched against the full path, so use **/name to
-match at any depth.`
+match at any depth.
+
+Log levels: "silent" prints nothing (check the exit code),
+"normal" prints the result and errors, "verbose" also logs git
+commands and full errors.`
+
+const LEVELS = ['silent', 'normal', 'verbose']
 
 const { values: v } = parseArgs({
   options: {
@@ -38,7 +45,7 @@ const { values: v } = parseArgs({
     author: { type: 'string', short: 'a' },
     force: { type: 'boolean', short: 'f', default: false },
     'dry-run': { type: 'boolean', short: 'n', default: false },
-    verbose: { type: 'boolean', short: 'v', default: false },
+    'log-level': { type: 'string', short: 'l', default: 'normal' },
     version: { type: 'boolean', short: 'V', default: false },
     help: { type: 'boolean', short: 'h', default: false }
   }
@@ -55,27 +62,36 @@ if (v.version) {
   process.exit(0)
 }
 
-// Dead simple spinner (skipped when verbose or piped)
+const level = /** @type {'silent' | 'normal' | 'verbose'} */ (v['log-level'])
+if (!LEVELS.includes(level)) {
+  console.error(`Invalid --log-level "${level}", expected one of: ${LEVELS.join(', ')}`)
+  process.exit(1)
+}
+
+// Dead simple spinner (normal level, TTY only)
 const frames = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏']
 let i = 0
 const spin =
-  process.stderr.isTTY && !v.verbose
+  process.stderr.isTTY && level === 'normal'
     ? setInterval(() => process.stderr.write(`\r${frames[i++ % frames.length]}`), 100)
     : null
 const stop = () => spin && (clearInterval(spin), process.stderr.write('\r \r'))
 
 try {
-  const changes = await publish({ ...v, dryRun: v['dry-run'] })
+  const changes = await deploy({ ...v, logLevel: level, dryRun: v['dry-run'] })
   stop()
-  console.log(
-    !changes
-      ? 'Nothing to publish'
-      : v['dry-run']
-        ? `Dry run, would publish:\n${changes}`
-        : 'Published'
-  )
+  if (level !== 'silent') {
+    console.log(
+      !changes
+        ? 'Nothing to deploy'
+        : v['dry-run']
+          ? `Dry run, would deploy:\n${changes}`
+          : 'Deployed!'
+    )
+  }
 } catch (/** @type {any} */ e) {
   stop()
-  console.error(v.verbose ? e : e.message)
+  if (level === 'verbose') console.error(e)
+  else if (level === 'normal') console.error(e.message)
   process.exit(1)
 }
