@@ -1,6 +1,6 @@
 {
   "name": "oneclickpush",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "One-click GitHub Pages deployer",
   "author": "Jason Lee <jason@zerodevx.com>",
   "scripts": {
@@ -33,6 +33,7 @@
   "keywords": [
     "one-click",
     "gh-pages",
-    "deploy"
+    "deploy",
+    "cli"
   ]
 }

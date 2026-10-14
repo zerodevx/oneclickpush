@@ -6,8 +6,7 @@ import { join, resolve } from 'node:path'
 
 /** @typedef {'silent' | 'normal' | 'verbose'} OcpOptionsLogLevel */
 
-/** Default option values, shared with the CLI */
-export const DEFAULTS = Object.freeze({
+export const DEFAULTS = {
   exclude: ['**/.DS_Store'],
   branch: 'gh-pages',
   message: 'Updates',
@@ -15,7 +14,7 @@ export const DEFAULTS = Object.freeze({
   force: false,
   dryRun: false,
   logLevel: /** @type {OcpOptionsLogLevel} */ ('normal')
-})
+}
 
 /**
  * @typedef {object} OcpOptions
@@ -68,8 +67,8 @@ export async function deploy({
   /** @type {(args: string[], cwd?: string, env?: Record<string, string>) => Promise<string>} */
   const git = async (args, cwd, env) => {
     if (logLevel === 'verbose') console.error(`$ git ${args.join(' ')}`)
-    const result = await run('git', args, { cwd, env: { ...process.env, ...env } })
-    return result.stdout.trim()
+    const { stdout } = await run('git', args, { cwd, env: { ...process.env, ...env } })
+    return stdout.trim()
   }
 
   // A remote name resolves to its url; anything else is used as a url or path as-is

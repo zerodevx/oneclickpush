@@ -84,7 +84,7 @@ if (positionals.length !== 1) {
 }
 const dir = positionals[0]
 
-const level = /** @type {'silent' | 'normal' | 'verbose'} */ (v['log-level'])
+const level = /** @type {import('./index.js').OcpOptionsLogLevel} */ (v['log-level'])
 if (!LEVELS.includes(level)) {
   console.error(`Invalid --log-level "${level}", expected one of: ${LEVELS.join(', ')}`)
   process.exit(1)

@@ -1,15 +1,14 @@
 export type OcpOptionsLogLevel = 'silent' | 'normal' | 'verbose'
 /** @typedef {'silent' | 'normal' | 'verbose'} OcpOptionsLogLevel */
-/** Default option values, shared with the CLI */
-export declare const DEFAULTS: Readonly<{
+export declare const DEFAULTS: {
   exclude: string[]
-  branch: 'gh-pages'
-  message: 'Updates'
-  remote: 'origin'
-  force: false
-  dryRun: false
+  branch: string
+  message: string
+  remote: string
+  force: boolean
+  dryRun: boolean
   logLevel: OcpOptionsLogLevel
-}>
+}
 export type OcpOptions = {
   /**
    * Directory to deploy (required)
