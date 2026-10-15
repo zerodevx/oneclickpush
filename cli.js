@@ -1,7 +1,17 @@
 #!/usr/bin/env node
 import { parseArgs } from 'node:util'
 import { readFileSync } from 'node:fs'
-import { deploy, DEFAULTS } from './index.js'
+import { deploy } from './index.js'
+
+const DEFAULTS = {
+  exclude: ['**/.DS_Store'],
+  branch: 'gh-pages',
+  message: 'Updates',
+  remote: 'origin',
+  force: false,
+  dryRun: false,
+  logLevel: 'normal'
+}
 
 const HELP = `Usage: oneclickpush <dir> [options]
 
@@ -84,7 +94,7 @@ if (positionals.length !== 1) {
 }
 const dir = positionals[0]
 
-const level = /** @type {import('./index.js').OcpOptionsLogLevel} */ (v['log-level'])
+const level = v['log-level']
 if (!LEVELS.includes(level)) {
   console.error(`Invalid --log-level "${level}", expected one of: ${LEVELS.join(', ')}`)
   process.exit(1)
@@ -100,7 +110,7 @@ const spin =
 const stop = () => spin && (clearInterval(spin), process.stderr.write('\r \r'))
 
 try {
-  const changes = await deploy({ ...v, dir, logLevel: level, dryRun: v['dry-run'] })
+  const changes = await deploy({ ...v, dir, verbose: level === 'verbose', dryRun: v['dry-run'] })
   stop()
   if (level !== 'silent') {
     console.log(

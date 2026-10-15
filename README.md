@@ -109,7 +109,7 @@ const changes = await deploy({
   author: 'Deploy Bot <bot@example.com>',
   force: false,
   dryRun: false,
-  logLevel: 'normal'
+  verbose: false
 })
 
 if (changes) {
@@ -119,31 +119,19 @@ if (changes) {
 }
 ```
 
-The default values are also exported as `DEFAULTS`:
-
-```javascript
-import { DEFAULTS } from 'oneclickpush'
-
-console.log(DEFAULTS.branch) // "gh-pages"
-```
-
 ### Options
 
-| Option     | Type                                | Default            | Description                                         |
-| ---------- | ----------------------------------- | ------------------ | --------------------------------------------------- |
-| `dir`      | `string`                            | - (required)       | Directory to deploy                                 |
-| `exclude`  | `string[]`                          | `["**/.DS_Store"]` | Paths to exclude relative to `dir`                  |
-| `branch`   | `string`                            | `"gh-pages"`       | Target git branch                                   |
-| `message`  | `string`                            | `"Updates"`        | Git commit message                                  |
-| `remote`   | `string`                            | `"origin"`         | Remote name or repository URL/path to deploy to     |
-| `author`   | `string`                            | -                  | Commit author and committer, as `"Name <email>"`    |
-| `force`    | `boolean`                           | `false`            | Force push fresh commit with no previous history    |
-| `dryRun`   | `boolean`                           | `false`            | Return staged changes without committing or pushing |
-| `logLevel` | `"silent" \| "normal" \| "verbose"` | `"normal"`         | Only `"verbose"` has an effect: logs git commands   |
-
-> [!NOTE]  
-> The library never prints anything except at `"verbose"`. `"silent"` and `"normal"` only differ in
-> the CLI.
+| Name      | Type       | Default            | Description                                         |
+| --------- | ---------- | ------------------ | --------------------------------------------------- |
+| `dir`     | `string`   | - (required)       | Directory to deploy                                 |
+| `exclude` | `string[]` | `["**/.DS_Store"]` | Paths to exclude relative to `dir`                  |
+| `branch`  | `string`   | `"gh-pages"`       | Target git branch                                   |
+| `message` | `string`   | `"Updates"`        | Git commit message                                  |
+| `remote`  | `string`   | `"origin"`         | Remote name or repository URL/path to deploy to     |
+| `author`  | `string`   | -                  | Commit author and committer, as `"Name <email>"`    |
+| `force`   | `boolean`  | `false`            | Force push fresh commit with no previous history    |
+| `dryRun`  | `boolean`  | `false`            | Return staged changes without committing or pushing |
+| `verbose` | `boolean`  | `false`            | Logs git commands to stderr                         |
 
 ## How It Works
 

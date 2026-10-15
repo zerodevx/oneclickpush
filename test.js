@@ -5,7 +5,7 @@ import { mkdtemp, mkdir, writeFile, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { deploy, DEFAULTS } from './index.js'
+import { deploy } from './index.js'
 
 const CLI = join(dirname(fileURLToPath(import.meta.url)), 'cli.js')
 
@@ -238,13 +238,6 @@ test('cli: --help exits 0 and prints usage', () => {
   const r = spawnSync('node', [CLI, '--help'], { encoding: 'utf8' })
   assert.equal(r.status, 0)
   assert.match(r.stdout, /Usage: oneclickpush/)
-})
-
-test('cli: help text shows the defaults from index.js', () => {
-  const r = spawnSync('node', [CLI, '--help'], { encoding: 'utf8' })
-  assert.ok(r.stdout.includes(`"${DEFAULTS.branch}"`))
-  assert.ok(r.stdout.includes(`"${DEFAULTS.message}"`))
-  assert.ok(r.stdout.includes(`"${DEFAULTS.exclude[0]}"`))
 })
 
 test('cli: deploys and supports --dry-run', async () => {

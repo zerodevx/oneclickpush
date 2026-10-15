@@ -4,47 +4,31 @@ import { mkdtemp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 
-/** @typedef {'silent' | 'normal' | 'verbose'} OcpOptionsLogLevel */
-
-export const DEFAULTS = {
-  exclude: ['**/.DS_Store'],
-  branch: 'gh-pages',
-  message: 'Updates',
-  remote: 'origin',
-  force: false,
-  dryRun: false,
-  logLevel: /** @type {OcpOptionsLogLevel} */ ('normal')
-}
-
-/**
- * @typedef {object} OcpOptions
- * @prop {string} dir Directory to deploy (required)
- * @prop {string[]} [exclude] Paths to leave out, relative to dir (default: `**\/.DS_Store`)
- * @prop {string} [branch="gh-pages"] Target branch
- * @prop {string} [message="Updates"] Commit message
- * @prop {string} [remote="origin"] Remote name of the current repo, or a repository URL or path
- * @prop {string} [author] Commit author and committer as "Name <email>"
- * @prop {boolean} [force=false] Force push new commit with no history
- * @prop {boolean} [dryRun=false] Show what would change, without committing or pushing
- * @prop {OcpOptionsLogLevel} [logLevel="normal"] Only "verbose" logs (git commands, to stderr)
- */
-
 /**
  * Replace the contents of a git branch with the contents of a directory.
  * Returns the staged changes as `git diff --name-status` text or "" if nothing changed.
- * @param {OcpOptions} options
+ * @param {object} o
+ * @param {string} o.dir Directory to deploy (required)
+ * @param {string[]} [o.exclude] Paths to leave out, relative to dir (default: `**\/.DS_Store`)
+ * @param {string} [o.branch="gh-pages"] Target branch
+ * @param {string} [o.message="Updates"] Commit message
+ * @param {string} [o.remote="origin"] Remote name of the current repo, or a repository URL or path
+ * @param {string} [o.author] Commit author and committer as "Name <email>"
+ * @param {boolean} [o.force=false] Force push new commit with no history
+ * @param {boolean} [o.dryRun=false] Return staged changes without committing or pushing
+ * @param {boolean} [o.verbose=false] Log git commands to stderr
  * @returns {Promise<string>}
  */
 export async function deploy({
   dir,
-  exclude = DEFAULTS.exclude,
-  branch = DEFAULTS.branch,
-  message = DEFAULTS.message,
-  remote = DEFAULTS.remote,
+  exclude = ['**/.DS_Store'],
+  branch = 'gh-pages',
+  message = 'Updates',
+  remote = 'origin',
   author,
-  force = DEFAULTS.force,
-  dryRun = DEFAULTS.dryRun,
-  logLevel = DEFAULTS.logLevel
+  force = false,
+  dryRun = false,
+  verbose = false
 }) {
   if (!dir) throw new Error('dir is required')
   dir = resolve(dir)
@@ -66,7 +50,7 @@ export async function deploy({
 
   /** @type {(args: string[], cwd?: string, env?: Record<string, string>) => Promise<string>} */
   const git = async (args, cwd, env) => {
-    if (logLevel === 'verbose') console.error(`$ git ${args.join(' ')}`)
+    if (verbose) console.error(`$ git ${args.join(' ')}`)
     const { stdout } = await run('git', args, { cwd, env: { ...process.env, ...env } })
     return stdout.trim()
   }
