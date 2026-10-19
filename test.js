@@ -319,9 +319,9 @@ test('cli: rejects an invalid --log-level', () => {
   assert.match(r.stderr, /Invalid --log-level/)
 })
 
-test('cli: unknown option prints a one-line error and a help hint', () => {
+test('cli: unknown option prints a one-line error and a one-line help hint', () => {
   const r = spawnSync('node', [CLI, 'x', '--nope'], { encoding: 'utf8' })
   assert.equal(r.status, 1)
-  assert.match(r.stderr, /Unknown option '--nope'.*oneclickpush --help/)
-  assert.equal(r.stderr.trim().split('\n').length, 1) // no stack trace
+  assert.match(r.stderr, /Unknown option '--nope'\n.*oneclickpush --help/)
+  assert.equal(r.stderr.trim().split('\n').length, 2) // no stack trace
 })

@@ -47,6 +47,12 @@ commands and full errors.`
 
 const LEVELS = ['silent', 'normal', 'verbose']
 
+/** @param {string} msg @returns {never} */
+const fail = (msg) => {
+  console.error(`${msg}\nTry "oneclickpush --help" for usage`)
+  process.exit(1)
+}
+
 const { values: v, positionals } = (() => {
   try {
     return parseArgs({
@@ -67,9 +73,7 @@ const { values: v, positionals } = (() => {
   } catch (/** @type {any} */ e) {
     if (!e.code?.startsWith('ERR_PARSE_ARGS_')) throw e
     // Keep only the first sentence, Node appends a long "-- " hint to some messages
-    const msg = e.message.split('. ')[0].replace(/\.$/, '')
-    console.error(`${msg}, run "oneclickpush --help" for usage`)
-    process.exit(1)
+    fail(e.message.split('. ')[0].replace(/\.$/, ''))
   }
 })()
 
@@ -85,19 +89,15 @@ if (v.version) {
 }
 
 if (positionals.length !== 1) {
-  console.error(
-    positionals.length === 0
-      ? 'Missing required argument <dir>, run "oneclickpush --help" for usage'
-      : 'Expected exactly one directory, run "oneclickpush --help" for usage'
+  fail(
+    positionals.length === 0 ? 'Missing required argument <dir>' : 'Expected exactly one directory'
   )
-  process.exit(1)
 }
 const dir = positionals[0]
 
 const level = v['log-level']
 if (!LEVELS.includes(level)) {
-  console.error(`Invalid --log-level "${level}", expected one of: ${LEVELS.join(', ')}`)
-  process.exit(1)
+  fail(`Invalid --log-level "${level}", expected one of: ${LEVELS.join(', ')}`)
 }
 
 // Dead simple spinner (normal level, TTY only)
